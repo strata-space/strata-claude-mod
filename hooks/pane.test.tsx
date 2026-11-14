@@ -571,3 +571,35 @@ test('a quote is counted under its heading alone: a long repeat under another co
   // A wall-clock budget, wide enough for a loaded CI runner. It catches a runaway scan, not every quadratic slip (strata-space/strata-claude-mod#1).
   expect(Date.now() - started).toBeLessThan(5000)
 })
+
+test('a pane fetch too large for a context, which the engine saved to a file, fills the pane from that file', async ($, on) => {
+  mock.clock(on)
+  on('command.register', () => ({ value: { command: 'strata' } }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  const savedAt = '/home/jane/.claude/projects/p/tool-results/mcp-strata-read_document-9.txt'
+  // `$.mcp.call` hands a plugin the same note the model gets: not an error, and no JSON.
+  on('mcp.call', (_, e) => {
+    if (e.tool === 'read_document') {
+      const note = `Error: result (105,949 characters) exceeds maximum allowed tokens. Output has been saved to ${savedAt}.\nFormat: JSON with schema: {documentId: string, ...}`
+      return { value: { content: [{ type: 'text', text: note }], isError: false } }
+    }
+    return { value: { content: [{ type: 'text', text: JSON.stringify({ comments: [] }) }], isError: false } }
+  })
+  on('tool.call', () => ({ result: {}, text: READ }))
+  const reads: string[] = []
+  on('fs.read', (_, e) => {
+    reads.push(e.path)
+    return { value: READ.replace('"documentVersion":214', '"documentVersion":215') }
+  })
+
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'mcp__strata__read_document', documentId: 'doc_1' } as unknown as ToolCallArgs)
+  const pane = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await pane.press({ key: 'refresh' })
+  expect(reads).toEqual([savedAt])
+  expect(await pane.find({ type: 'Text', text: /no document/ })).toBeUndefined()
+  expect((await pane.find({ type: 'Text', text: /v215/ }))?.text).toBe('v215')
+  await pane.unmount()
+})

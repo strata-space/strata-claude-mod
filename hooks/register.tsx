@@ -500,7 +500,7 @@ async function fetchReserved($: Engine, via: string, documentId: string, path: s
     const answer = await $.mcp.call(via, 'read_document', args)
     const text = textOf(answer)
     if (answer.isError) throw new Error(text || 'the read failed')
-    landed = parseReadResult(text)
+    landed = (await readResultOf($, text)).result
     if (landed === null) throw new Error('the read answered no document')
   } catch (error) {
     failure = error instanceof Error ? error.message : String(error)
@@ -1304,7 +1304,7 @@ async function refreshOnce($: Engine): Promise<void> {
       continue
     }
     const text = textOf(answer)
-    const result = answer.isError ? null : parseReadResult(text)
+    const result = answer.isError ? null : (await readResultOf($, text)).result
     if (result === null) {
       toast($, `Strata: could not re-read "${clip(row.title, 32)}"`)
       continue
@@ -2059,11 +2059,31 @@ async function shareCursor($: Engine): Promise<void> {
 
 // ---- Reads the hooks make -----------------------------------------------
 
+/**
+ * A `read_document` answer's document. An answer too large for a context
+ * comes back, to the model and to `$.mcp.call` alike, as the engine's note
+ * that it saved the output to a file; the document is read from that file.
+ * Null when neither the text nor the file holds one.
+ */
+async function readResultOf($: Engine, text: string): Promise<{ result: ReadResult | null; isFromFile: boolean }> {
+  const result = parseReadResult(text)
+  if (result !== null) return { result, isFromFile: false }
+  // The path runs to the end of its line, whatever it holds (a space, a
+  // drive letter), less the full stop the message ends it with.
+  const saved = /Output has been saved to (.+?)\.?[ \t]*(?:\r?\n|$)/.exec(text)
+  if (saved === null) return { result: null, isFromFile: false }
+  try {
+    return { result: parseReadResult(await $.fs.read(saved[1] ?? '')), isFromFile: true }
+  } catch {
+    return { result: null, isFromFile: false }
+  }
+}
+
 /** Read a mentioned document for the prompt; null when it cannot be read. */
 async function readMention($: Engine, via: string, id: string): Promise<ReadResult | null> {
   try {
     const answer = await $.mcp.call(via, 'read_document', { documentId: id })
-    return answer.isError ? null : parseReadResult(textOf(answer))
+    return answer.isError ? null : (await readResultOf($, textOf(answer))).result
   } catch {
     return null
   }
@@ -2292,26 +2312,9 @@ export const register: Register = (on, options) => {
     if (ran.deny !== undefined || typeof ran.text !== 'string') return ran
     // A subagent's read is its own: it does not say what the main conversation holds.
     if ((e as { agentId?: string }).agentId !== undefined) return ran
-    let text = ran.text
-    let result = parseReadResult(text)
-    // True when the text came from the engine's file rather than the model's context.
-    let isFromFile = false
-    if (result === null) {
-      // An answer too large for the model's context: the engine put it in a
-      // file and told the model where. The pane reads it from there, so the
-      // person sees the document the model was handed by file.
-      // The path runs to the end of its line, whatever it holds (a space, a
-      // drive letter), less the full stop the message ends it with.
-      const saved = /Output has been saved to (.+?)\.?[ \t]*(?:\r?\n|$)/.exec(text)
-      if (saved === null) return ran
-      try {
-        text = await $.fs.read(saved[1] ?? '')
-      } catch {
-        return ran
-      }
-      result = parseReadResult(text)
-      isFromFile = true
-    }
+    // An answer too large for the model's context comes from the engine's
+    // file, so the person sees the document the model was handed by file.
+    const { result, isFromFile } = await readResultOf($, ran.text)
     const via = serverOf(String(e.tool))
     if (result === null || via === null) return ran
     const requested = Array.isArray((e as { sections?: unknown }).sections)
