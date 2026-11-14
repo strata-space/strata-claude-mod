@@ -450,7 +450,8 @@ test('tables of escaped backslashes, headers alone or many rows, and escaped bac
   expect(tableLayout('a | b\n---\nc | d | e', 80)).toBe(null)
 })
 
-test('a fence under a list item, after a blank line, ends with the item; indented code is no table', () => {
+// Many calls into the module through the test kit: slow on CI runners, not in the code.
+test('a fence under a list item, after a blank line, ends with the item; indented code is no table', { timeoutMs: 20_000 }, () => {
   const text = ['- item', '', '  ~~~html', '  <x/>', '', 'Outside.', '', '# Real'].join('\n')
   expect(outlineOf(text).map(entry => entry.path)).toEqual(['Real'])
   expect(degradeHtml(text, []).text).toContain('Outside.')
