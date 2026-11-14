@@ -326,6 +326,33 @@ async function drawnPane($: Engine): Promise<'open' | 'closed' | 'unknown'> {
 }
 
 /**
+ * Open the document pane for a press, before anything else the press does.
+ * The engine places a pane at any width only for an open that answers the
+ * person's input; an open made after an await (a read from the server, a
+ * step) comes after the press and waits undrawn below 144 columns, so a
+ * press seemed to do nothing on a narrow terminal. The open is issued here
+ * at once. When the engine still cannot place it, a toast says why rather
+ * than nothing.
+ */
+function openPaneForPress($: Engine, title: string, focus = false): Promise<void> {
+  const opened = $.ui.open({ id: DOC_PANE, title: lineOf(clip(title, 40)), ...(focus ? { focus: true } : {}) })
+  // Recorded at once, so a close the person makes meanwhile is reconciled
+  // against an open pane. The pane's state is left to what the press does
+  // next (the fetch it lands, or `openPane`), judged there against any close.
+  paneDrawn = 'open'
+  return (async () => {
+    const answer = await opened.catch(() => null)
+    if (answer !== null && !answer.isPlaced) toast($, `Strata: the pane is waiting: ${answer.reason}`)
+  })()
+}
+
+/** A press that reads a document into the pane: the pane opens first, as the person's, then the read. */
+function pressFetch($: Engine, via: string, documentId: string, title: string): Promise<void> {
+  const shown = openPaneForPress($, title)
+  return Promise.all([shown, fetchInto($, via, documentId, null, title)]).then(noop)
+}
+
+/**
  * Mark the pane open and show it as the person's own open, with focus when
  * asked; the document is followed again where the CLI can. Answers the
  * open's result, or null when a run of the reconciler another hook drives
@@ -3020,7 +3047,7 @@ export const register: Register = (on, options) => {
           // it to Claude, and the matching text under it, dim.
           <Box key={`result${index}`} flexDirection="column" marginTop={index === 0 ? 1 : 0}>
             <Box columnGap={2}>
-              <Button key={`open${index}`} plain onPress={() => void fetchInto($, state.server ?? via, result.id, null, result.title)}>
+              <Button key={`open${index}`} plain onPress={() => pressFetch($, state.server ?? via, result.id, result.title)}>
                 {drawable(clip(result.title, 56))}
               </Button>
               <Button
@@ -3078,7 +3105,7 @@ export const register: Register = (on, options) => {
                   key={`open-${addressOf(item)}`}
                   plain
                   dimColor
-                  onPress={() => void fetchInto($, item.server, item.documentId, null, item.documentTitle)}
+                  onPress={() => pressFetch($, item.server, item.documentId, item.documentTitle)}
                 >
                   open in pane
                 </Button>
@@ -3091,7 +3118,7 @@ export const register: Register = (on, options) => {
         </Box>
         {recent.length === 0 && <Text dimColor>No document read yet.</Text>}
         {recent.map(row => (
-          <Button key={`recent-${row.server}-${row.id}`} plain onPress={() => void fetchInto($, row.server, row.id, null, row.title)}>
+          <Button key={`recent-${row.server}-${row.id}`} plain onPress={() => pressFetch($, row.server, row.id, row.title)}>
             {drawable(clip(row.title, 48))} <Text dimColor>v{String(row.versionNow)}</Text>
           </Button>
         ))}
@@ -3133,7 +3160,11 @@ export const register: Register = (on, options) => {
           </Button>
         )}
         {!isPaneShown && (
-          <Button key="open-pane" plain onPress={() => void openPane($, false)}>
+          <Button
+            key="open-pane"
+            plain
+            onPress={() => Promise.all([openPaneForPress($, list.at(-1)?.title ?? 'Strata'), openPane($, false)]).then(noop)}
+          >
             open pane
           </Button>
         )}

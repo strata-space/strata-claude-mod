@@ -249,10 +249,63 @@ test('a fetch, a read of the model and a close, in every order: the revision nev
     expect(outcome.version, name).toBe('v216')
     expect(outcome.body, name).toEqual(['# Plan', 'Intro, as the model read it.'])
     expect(outcome.isLoading, name).toBe(false)
-    // The fetch applies only when nothing moved the pane between its start and its answer; a fetch that applies opens
-    // the pane, and a read of the model's never reopens a closed one.
-    const isFetchApplied = !order.slice(at('s1') + 1, at('r1')).some(event => event === 'read' || event === 'close')
-    const isOpen = at('close') === -1 || (at('close') < at('s1') && isFetchApplied)
+    // The press behind the fetch opens the pane at once, as the person's own open; a close after it holds, and a
+    // read of the model's never reopens a closed one.
+    const isOpen = at('close') === -1 || at('close') < at('s1')
     expect(outcome.lastShown, name).toBe(isOpen ? 'open strata-doc' : 'close strata-doc')
   }
+})
+
+test('a search result pressed opens the pane before its read answers, and a pane the engine cannot place says why', async ($, on) => {
+  mock.clock(on)
+  on('command.register', () => ({ value: { command: 'strata' } }))
+  const events: string[] = []
+  let isNarrow = false
+  on('ui.open', (_, e) => {
+    events.push(`open ${e.id}`)
+    // A narrow terminal: the engine holds an unasked pane back.
+    return isNarrow && e.id === 'strata-doc'
+      ? { value: { isPlaced: false, reason: 'unasked below 144 columns (now 100)' } }
+      : { value: { isPlaced: true } }
+  })
+  on('ui.close', () => ({ value: undefined }))
+  const toasts: string[] = []
+  on('ui.toast', (_, e) => {
+    toasts.push(String((e as { text?: unknown }).text))
+    return { value: undefined }
+  })
+  on('ui.scroll', () => ({}))
+  on('ui.focus', () => ({}))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  const held = hold()
+  on('mcp.call', async (_, e) => {
+    if (e.tool === 'read_document') {
+      held.markStarted()
+      await held.released
+      events.push('read answered')
+      return { value: { content: [{ type: 'text', text: OTHER }], isError: false } }
+    }
+    if (e.tool === 'find') return { value: { content: [{ type: 'text', text: FOUND }], isError: false } }
+    return { value: { content: [{ type: 'text', text: JSON.stringify({ comments: [] }) }], isError: false } }
+  })
+
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.command.run({
+    command: 'strata',
+    args: '',
+    origin: { kind: 'composer' },
+    presentation: { isFullscreen: false, columns: 100 },
+  } as unknown as CommandRunInput)
+  const explorer = await $.ui.mount({ ...EXPLORER, surface: 'terminal' })
+  await explorer.input({ key: 'search', text: 'notes' })
+  await explorer.redraw()
+  isNarrow = true
+  const pressed = explorer.press({ key: 'open0' })
+  await held.started
+  expect(events.filter(event => event !== 'open strata-space')).toEqual(['open strata-doc'])
+  held.release()
+  await pressed
+  expect(events.indexOf('open strata-doc')).toBeLessThan(events.indexOf('read answered'))
+  expect(toasts.some(text => text.includes('the pane is waiting') && text.includes('144 columns'))).toBe(true)
+  await explorer.unmount()
 })

@@ -3,7 +3,7 @@
   "name": "strata-mod",
   "displayName": "StrataSpace mod",
   "description": "A terminal document view for StrataSpace in Claude Code. A pane opens beside the chat when Claude reads a document, a band above the prompt tracks what Claude has read and when it changed, an explorer and review queue (/strata) search your Spaces and list the suggestions and comments made this session, @strata: mentions complete to a document in the prompt, and with the strata CLI the pane follows the document live with collaborators' presence. Works on its own or beside the strata plugin.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "license": "MIT",
   "types": "./types/index.d.ts",
   "userConfig": {
