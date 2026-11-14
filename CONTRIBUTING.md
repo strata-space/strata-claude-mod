@@ -17,9 +17,9 @@ here.
    claude plugin test .
    ```
    `claude plugin test` exists only on a Claude Code build with hooks modules
-   enabled (they are rolling out); CI skips it with a notice elsewhere.
+   enabled (they are rolling out). CI pins a build that has it.
 2. Type-check. Load the plugin once (`claude --plugin-dir .`) so Claude Code
    lays its API types under `.claude-plugin/types/` (gitignored), which the
-   repo's `tsconfig.json` extends, then run `npx tsc -p .`.
+   repo's `tsconfig.json` extends, then run `npx --package typescript tsc -p .`.
 3. Read the rules in [CLAUDE.md](CLAUDE.md).
 4. Use Conventional Commits.

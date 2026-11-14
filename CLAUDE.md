@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. It is for contributors: Claude Code does not load it for people who install the plugin.
 
 ## What this repo is
 
@@ -18,7 +18,7 @@ The `strata-mod` plugin: a Claude Code hooks module (TypeScript the engine runs 
 claude plugin validate .
 claude plugin test .
 # Type-check after one load (`claude --plugin-dir .` lays .claude-plugin/types/, gitignored)
-npx tsc -p .
+npx --package typescript tsc -p .
 ```
 
 ## Hooks module rules
@@ -30,5 +30,5 @@ npx tsc -p .
 - No new hardcoded URLs: document links come from `find` info (`url`) or the workspace-chooser deep link in `hooks/strata.ts`.
 - The live tier spawns the CLI the `cliPath` option names, `strata` by default; it must degrade to revision polling when the CLI is missing, signed out, too old, or not saying which deployment it is signed into (`probeTier`), never fail the pane. A watch follows a document only when the document's link in the web app (from `find` info) names the deployment the CLI's `status --json` `apiUrl` names (`deploymentOf`): the CLI watches by id on its own deployment, and another deployment's MCP server may hold a document of the same id. A document is the pair of its MCP server and its id everywhere the module tells documents apart (`DocumentRef`, `isViewOf`, `isRowOf`).
 - Tests live beside the code (`hooks/*.test.ts`) and run with `claude plugin test .`; the kit's stand-ins for `$` calls answer `{ value }`, plain events answer their result, and a `process.spawn` stand-in is an async generator.
-- `hooks/hooks.json` keeps both shapes: an empty classic `hooks` record, so a Claude Code build without hooks modules (they are rolling out) validates and loads the plugin without the module, and `modules` naming `register.tsx` for a build with them. Keep both; `claude plugin test` exists only on the latter, and CI skips it with a notice elsewhere.
+- `hooks/hooks.json` keeps both shapes: an empty classic `hooks` record, so a Claude Code build without hooks modules (they are rolling out) validates and loads the plugin without the module, and `modules` naming `register.tsx` for a build with them. Keep both. CI pins a Claude Code build that has `claude plugin test` and fails when the tests fail.
 - The module changes its state through one queue of steps (`step` in `hooks/register.tsx`): a step reads the atoms, decides, writes and returns, and waits on nothing else (no `$.mcp.call`, no process, no question). Work that waits runs outside the queue and brings its answer in as a step judged against the state then: a fetch by the view's `nav` (one more on every navigation), the watch's events by its identity (`watching === watch`), a post by the draft's id and the field's generation. Do not add module-level sequence counters or "judged inside the update and again after" checks; add a step, or extend the runner that owns the concern (`settlePane`, `syncWatch`, `requestThreads`, `probe`, `runSearch`, `checkRevisions`). `hooks/pane.ts` is the pure side (views, budgets, selections, anchors): keep `$` out of it. `hooks/interleave.test.ts` drives the module through every ordering of held fetches, a read of the model's and a close; add to its events when adding a path that can run beside another.
