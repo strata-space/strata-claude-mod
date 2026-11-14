@@ -183,7 +183,7 @@ export type StrataExplorerView = {
 
 declare module 'claude-code' {
   interface PluginState {
-    strata: {
+    "strata-mod": {
       ledger: Shaped<StrataLoadedDoc[]>
       doc: Shaped<StrataDocView | null>
       review: Shaped<StrataReviewItem[]>
