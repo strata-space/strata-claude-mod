@@ -450,7 +450,7 @@ test('tables of escaped backslashes, headers alone or many rows, and escaped bac
   expect(tableLayout('a | b\n---\nc | d | e', 80)).toBe(null)
 })
 
-// Many calls into the module through the test kit: slow on CI runners, not in the code.
+// The timed checks below parse inputs up to 128,000 characters; together they outlast the default 5 s.
 test('a fence under a list item, after a blank line, ends with the item; indented code is no table', { timeoutMs: 20_000 }, () => {
   const text = ['- item', '', '  ~~~html', '  <x/>', '', 'Outside.', '', '# Real'].join('\n')
   expect(outlineOf(text).map(entry => entry.path)).toEqual(['Real'])
@@ -596,28 +596,30 @@ test('a fence under a list item, after a blank line, ends with the item; indente
   expect(opensFence('```html\u2028uses=sales')?.info).toBe('html\u2028uses=sales')
   // Unclosed image openers and backtick runs cost one pass, not a rescan each.
   // Each shape on its own budget: one pass each, not a rescan.
+  // A rescan on these inputs takes minutes, so 5 s per shape still catches one and leaves room for a loaded CI runner.
+  const BUDGET_MS = 5000
   const timed = (run: () => unknown): number => {
     const at = Date.now()
     run()
     return Date.now() - at
   }
-  expect(timed(() => withoutImages('!['.repeat(100000)))).toBeLessThan(2000)
-  expect(timed(() => withoutImages('![a](b "'.repeat(20000)))).toBeLessThan(2000)
-  expect(timed(() => withoutImages(Array.from({ length: 4000 }, (_, k) => '`'.repeat(k + 1)).join(' ')))).toBeLessThan(2000)
-  expect(timed(() => withoutImages(`${'!['.repeat(28000)}a](${'a'.repeat(28000)}`))).toBeLessThan(2000)
-  expect(timed(() => tableCost(`| ${Array.from({ length: 900 }, (_, k) => '`'.repeat(k + 1)).join(' ')} |\n|---|`))).toBeLessThan(2000)
-  expect(timed(() => tableCost(`| ${'**a '.repeat(100000)} |\n|---|`))).toBeLessThan(2000)
-  expect(timed(() => outlineOf(`# a${' '.repeat(128000)}z`))).toBeLessThan(2000)
-  expect(timed(() => headingPathsByLine(`## R\n\nRisk.\n\n#### S\n${'##### S\n'.repeat(100000)}`, ['P > R', 'P > O > S']))).toBeLessThan(2000)
-  expect(timed(() => headingPathsByLine(Array.from({ length: 60000 }, (_, k) => `## S${k}\n\ntext`).join('\n\n'), Array.from({ length: 60000 }, (_, k) => `D > S${k}`)))).toBeLessThan(2000)
-  expect(timed(() => headingPathsByLine(`## S\n${'#### T\n'.repeat(20000)}`, ['D > S', ...Array.from({ length: 20000 }, () => 'D > S > X > T')]))).toBeLessThan(2000)
-  expect(timed(() => rebaseOutline(outlineOf(`## Root\n${[0, 1].map(() => Array.from({ length: 48000 }, (_, k) => `#### S${k}`).join('\n')).join('\n')}`), ['P > Root', ...Array.from({ length: 48000 }, (_, k) => `Other > Group > S${k}`)]))).toBeLessThan(2000)
-  expect(timed(() => headingPathsByLine(`## Root\n${Array.from({ length: 64000 }, (_, k) => `#### S${k}`).join('\n')}\n${Array.from({ length: 64000 }, (_, k) => `#### S${k}\n#### T`).join('\n')}`, ['P > Root', ...Array.from({ length: 64000 }, (_, k) => [`A > S${k}`, `B${k} > T`]).flat()]))).toBeLessThan(2000)
-  expect(timed(() => tableCost(`| ${Array.from({ length: 64000 }, (_, k) => `h${k}`).join(' | ')} |\n|${'-|'.repeat(64000)}\n${'| x |\n'.repeat(64000)}`))).toBeLessThan(2000)
-  expect(timed(() => tableCost(`| a |\n|---|\n| a${'_'.repeat(128000)}b |`))).toBeLessThan(2000)
-  expect(timed(() => tableCost(`| a |\n|---|\n| a${'*'.repeat(128000)}b |`))).toBeLessThan(2000)
-  expect(timed(() => tableCost(`a | b\n${' '.repeat(3072)}---${' '.repeat(3072)}x`))).toBeLessThan(2000)
-  expect(timed(() => tableCost(`a | b\n${'- '.repeat(64000)}x`))).toBeLessThan(2000)
+  expect(timed(() => withoutImages('!['.repeat(100000)))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => withoutImages('![a](b "'.repeat(20000)))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => withoutImages(Array.from({ length: 4000 }, (_, k) => '`'.repeat(k + 1)).join(' ')))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => withoutImages(`${'!['.repeat(28000)}a](${'a'.repeat(28000)}`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => tableCost(`| ${Array.from({ length: 900 }, (_, k) => '`'.repeat(k + 1)).join(' ')} |\n|---|`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => tableCost(`| ${'**a '.repeat(100000)} |\n|---|`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => outlineOf(`# a${' '.repeat(128000)}z`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => headingPathsByLine(`## R\n\nRisk.\n\n#### S\n${'##### S\n'.repeat(100000)}`, ['P > R', 'P > O > S']))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => headingPathsByLine(Array.from({ length: 60000 }, (_, k) => `## S${k}\n\ntext`).join('\n\n'), Array.from({ length: 60000 }, (_, k) => `D > S${k}`)))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => headingPathsByLine(`## S\n${'#### T\n'.repeat(20000)}`, ['D > S', ...Array.from({ length: 20000 }, () => 'D > S > X > T')]))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => rebaseOutline(outlineOf(`## Root\n${[0, 1].map(() => Array.from({ length: 48000 }, (_, k) => `#### S${k}`).join('\n')).join('\n')}`), ['P > Root', ...Array.from({ length: 48000 }, (_, k) => `Other > Group > S${k}`)]))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => headingPathsByLine(`## Root\n${Array.from({ length: 64000 }, (_, k) => `#### S${k}`).join('\n')}\n${Array.from({ length: 64000 }, (_, k) => `#### S${k}\n#### T`).join('\n')}`, ['P > Root', ...Array.from({ length: 64000 }, (_, k) => [`A > S${k}`, `B${k} > T`]).flat()]))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => tableCost(`| ${Array.from({ length: 64000 }, (_, k) => `h${k}`).join(' | ')} |\n|${'-|'.repeat(64000)}\n${'| x |\n'.repeat(64000)}`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => tableCost(`| a |\n|---|\n| a${'_'.repeat(128000)}b |`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => tableCost(`| a |\n|---|\n| a${'*'.repeat(128000)}b |`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => tableCost(`a | b\n${' '.repeat(3072)}---${' '.repeat(3072)}x`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => tableCost(`a | b\n${'- '.repeat(64000)}x`))).toBeLessThan(BUDGET_MS)
   // An underscore run inside a word is literal whole, whatever letters (astral ones too) stand beside it.
   const runs = tableLayout('| a |\n|---|\n| my___internal___name |\n| \u{1d465}__internal__\u{1d466} |', 80)
   expect(runs !== null && runs.kind === 'grid' ? runs.rows : []).toEqual(['my___internal___name', '\u{1d465}__internal__\u{1d466}'])

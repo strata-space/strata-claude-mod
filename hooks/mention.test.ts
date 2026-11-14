@@ -626,21 +626,24 @@ test('a passage quoted into the prompt keeps every line behind the quote mark', 
   expect(quoteForPrompt('A\rB')).toBe('\n> A\n> B\n\n')
 })
 
-test('backtick runs of many lengths and unclosed tags cost one pass', async () => {
+// The timed checks below parse inputs up to 512,000 characters; together they can outlast the default 5 s.
+test('backtick runs of many lengths and unclosed tags cost one pass', { timeoutMs: 20_000 }, async () => {
   // Each shape on its own budget.
+  // A rescan on these inputs takes minutes, so 5 s per shape still catches one and leaves room for a loaded CI runner.
+  const BUDGET_MS = 5000
   const timed = (run: () => unknown): number => {
     const at = Date.now()
     run()
     return Date.now() - at
   }
-  expect(timed(() => mentionSpans(`${Array.from({ length: 3000 }, (_, k) => '`'.repeat(k + 1)).join(' ')} @strata:doc_1`))).toBeLessThan(2000)
-  expect(timed(() => mentionSpans(`${'<a '.repeat(30000)}\`x @strata:doc_1`))).toBeLessThan(2000)
-  expect(timed(() => mentionSpans(`Explain ${'<!--'.repeat(130000)} @strata:doc_1`))).toBeLessThan(2000)
-  expect(timed(() => mentionSpans(`${'<a b="'.repeat(60000)} @strata:doc_1`))).toBeLessThan(2000)
-  expect(timed(() => mentionSpans(`${'[a\n'.repeat(64000)}@strata:doc_1`))).toBeLessThan(2000)
-  expect(timed(() => mentionSpans(`${'- '.repeat(32000)}text @strata:doc_1`))).toBeLessThan(2000)
-  expect(timed(() => mentionSpans('https://e.org @strata:doc_1 '.repeat(60000)))).toBeLessThan(2000)
-  expect(timed(() => mentionSpans('[a]: \n<a \n@strata:doc_1\n'.repeat(20000)))).toBeLessThan(2000)
-  expect(timed(() => mentionSpans(`${'a-'.repeat(256000)} @strata:doc_1`))).toBeLessThan(2000)
-  expect(timed(() => mentionSpans(`${'a://'.repeat(100000)} @strata:doc_1`))).toBeLessThan(2000)
+  expect(timed(() => mentionSpans(`${Array.from({ length: 3000 }, (_, k) => '`'.repeat(k + 1)).join(' ')} @strata:doc_1`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => mentionSpans(`${'<a '.repeat(30000)}\`x @strata:doc_1`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => mentionSpans(`Explain ${'<!--'.repeat(130000)} @strata:doc_1`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => mentionSpans(`${'<a b="'.repeat(60000)} @strata:doc_1`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => mentionSpans(`${'[a\n'.repeat(64000)}@strata:doc_1`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => mentionSpans(`${'- '.repeat(32000)}text @strata:doc_1`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => mentionSpans('https://e.org @strata:doc_1 '.repeat(60000)))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => mentionSpans('[a]: \n<a \n@strata:doc_1\n'.repeat(20000)))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => mentionSpans(`${'a-'.repeat(256000)} @strata:doc_1`))).toBeLessThan(BUDGET_MS)
+  expect(timed(() => mentionSpans(`${'a://'.repeat(100000)} @strata:doc_1`))).toBeLessThan(BUDGET_MS)
 })

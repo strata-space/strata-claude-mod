@@ -206,7 +206,7 @@ const LANDED: Record<string, { title: string; version: string; body: string[] }>
   doc_2: { title: 'Notes', version: 'v3', body: ['# Notes', 'Other.'] },
 }
 
-// Many calls into the module through the test kit: slow on CI runners, not in the code.
+// Drives every ordering of the events: on a CI runner it can outlast the default 5 s.
 test('two fetches and a close, in every order: the pane ends on the last navigation, never loading', { timeoutMs: 20_000 }, async ($, on) => {
   const { run } = harness($, on)
   const base = ['s1', 's2', 'r1', 'r2']
