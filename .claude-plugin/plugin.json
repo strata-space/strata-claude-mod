@@ -2,10 +2,9 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "strata-mod",
   "displayName": "StrataSpace mod",
-  "description": "A terminal document view for StrataSpace in Claude Code. A pane opens beside the chat when Claude reads a document, a band above the prompt tracks what Claude has read and when it changed, an explorer and review queue (/strata) search your Spaces and list the suggestions and comments made this session, @strata: mentions complete to a document in the prompt, and with the strata CLI the pane follows the document live with collaborators' presence. Requires the strata plugin, which provides the MCP server.",
-  "version": "0.1.0",
+  "description": "A terminal document view for StrataSpace in Claude Code. A pane opens beside the chat when Claude reads a document, a band above the prompt tracks what Claude has read and when it changed, an explorer and review queue (/strata) search your Spaces and list the suggestions and comments made this session, @strata: mentions complete to a document in the prompt, and with the strata CLI the pane follows the document live with collaborators' presence. Works on its own or beside the strata plugin.",
+  "version": "0.1.1",
   "license": "MIT",
-  "dependencies": ["strata@strata-space"],
   "types": "./types/index.d.ts",
   "userConfig": {
     "cliPath": {
@@ -27,7 +26,14 @@
       "default": true
     }
   },
-  "keywords": ["strataspace", "terminal", "collaboration", "document", "pane", "mod"],
+  "keywords": [
+    "strataspace",
+    "terminal",
+    "collaboration",
+    "document",
+    "pane",
+    "mod"
+  ],
   "author": {
     "name": "StrataSpace",
     "url": "https://strata.space"

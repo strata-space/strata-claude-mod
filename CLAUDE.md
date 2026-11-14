@@ -9,7 +9,8 @@ The `strata-mod` plugin: a Claude Code hooks module (TypeScript the engine runs 
 - `hooks/register.tsx` (named by `hooks/hooks.json`): the module. A document pane on `read_document` (`hooks/markdown.ts` cuts sections, folds html embeds, makes the blocks the cursor walks), a band above the prompt with revision polling over `find` info, the explorer and review queue, `@strata:` mentions, and the live tier over `strata doc watch` (`hooks/watch.ts` parses its JSON lines).
 - `hooks/pane.ts`: the pure side (views, budgets, selections, anchors). `hooks/strata.ts`: reading the MCP server's answers.
 - `types/index.d.ts`: the `$.state` contract, named by `plugin.json` `types`. `userConfig` in `plugin.json` declares the options.
-- `.claude-plugin/plugin.json`: the manifest. It lists the `strata` plugin under `dependencies`; that plugin provides the MCP server and the skills. This repo bundles no `.mcp.json`.
+- `.claude-plugin/plugin.json`: the manifest: state contract and user options.
+- `.mcp.json`: the StrataSpace MCP server, key `strata`, at the production URL the `strata` plugin uses.
 
 ## Commands
 
@@ -24,7 +25,7 @@ npx --package typescript tsc -p .
 ## Hooks module rules
 
 - Every `$.state` atom, `e.plugin` comparison and contract is keyed under the plugin's own name, `strata-mod`.
-- The MCP server belongs to the `strata` plugin. Calls name it in the tool-name spelling, `plugin_strata_strata` (`plugin:strata:strata` in `/mcp`), until the module observes an `mcp__<server>__read_document` call and uses that server. Do not bundle a server here.
+- Claude Code connects one server per URL: a user's own `strata` server, or the `strata` plugin's, takes the place of this plugin's copy. So no server name is hardcoded: `session.start` asks `$.mcp.connect('strata')` for the name the session runs it under, and calls use that (colons as underscores) until the module observes an `mcp__<server>__read_document` call and uses that server.
 - Every write to Strata from the pane follows a press or a keystroke; the module never writes on its own, and it never holds, rewrites or denies the model's own document writes (`rewrite_document`, `replace_document_text`, `insert_document_section`): review-before-write, if ever wanted, belongs on the edit tools server-side, not in a client-side gate. `$.mcp.call` raises no permission prompt.
 - `$.state` values are declared in `types/index.d.ts` with a `shape` tag per atom; change the tag when a value's fields change, so a reload declines what an older version stored.
 - No new hardcoded URLs: document links come from `find` info (`url`) or the workspace-chooser deep link in `hooks/strata.ts`.

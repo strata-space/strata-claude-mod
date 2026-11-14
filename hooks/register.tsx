@@ -76,8 +76,17 @@ const POLL_MS = 10_000
 const POLL_DOCS = 5
 /** The token budget a fetch of the pane's asks for, so the whole text comes back. */
 const WHOLE_READ_TOKENS = 400_000
-/** The server the `strata` plugin provides, in the tool-name spelling `$.mcp.call` accepts (`plugin:strata:strata` in `/mcp`), for a call made before any Strata tool ran. */
-const DEFAULT_SERVER = 'plugin_strata_strata'
+/** The Strata server key in this plugin's `.mcp.json`. */
+const SERVER_KEY = 'strata'
+/**
+ * The server a call made before any Strata tool ran goes to, in the tool-name
+ * spelling `$.mcp.call` accepts. `session.start` resolves it with
+ * `$.mcp.connect(SERVER_KEY)`, which answers the name the session runs the
+ * server under: a user's own `strata` server or the `strata` plugin's at the
+ * same URL takes the place of this plugin's copy, and `plugin:<plugin>:strata`
+ * is not then connected.
+ */
+let defaultServer = SERVER_KEY
 /** How many `@strata:` mentions one prompt expands. */
 const MENTION_LIMIT = 5
 /** How many search answers the mention typeahead keeps. */
@@ -1070,7 +1079,7 @@ async function settleThread($: Engine, onDocument: DocumentRef, thread: StrataTh
 
 /** The server to call: the one last seen, else the `strata` plugin's. */
 async function serverFor($: Engine): Promise<string> {
-  return (await read($, server)) ?? DEFAULT_SERVER
+  return (await read($, server)) ?? defaultServer
 }
 
 /** The model's read tool through `via`, as its tool list names it: what a prompt names so the model reads from the right server. */
@@ -2077,6 +2086,9 @@ export const register: Register = (on, options) => {
       description: 'Strata: the explorer and review queue, the document pane, the band, or the live watch',
       argumentHint: '[doc|close|refresh|band|live]',
     })
+    // The `/mcp` name holds colons; tool names and `$.mcp.call` take underscores.
+    const connected = await $.mcp.connect(SERVER_KEY).catch(() => null)
+    if (connected?.isConnected === true) defaultServer = connected.server.replaceAll(':', '_')
     $.clock.every(POLL_MS, () => {
       void checkRevisions($).catch(noop)
     })

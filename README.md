@@ -11,8 +11,8 @@ plugin installs and stays idle.
 
 ## Install
 
-Requires the `strata` plugin, which provides the StrataSpace MCP server and the
-skills. Installing `strata-mod` installs it as a dependency.
+Works on its own: it registers the StrataSpace MCP server. Install the `strata`
+plugin beside it for the skills; Claude Code then runs one server for both.
 
 ```
 /plugin marketplace add strata-space/marketplace
@@ -62,7 +62,8 @@ Under `/config`, plugin options: **strata CLI** (`cliPath`, default `strata` on
 ## Layout
 
 ```
-.claude-plugin/plugin.json   # manifest: dependency on strata, state contract, user options
+.claude-plugin/plugin.json   # manifest: state contract, user options
+.mcp.json                    # the StrataSpace MCP server
 hooks/hooks.json             # names the module
 hooks/register.tsx           # the module; parts and tests beside it
 types/index.d.ts             # the module's state contract (what it keeps in $.state)
