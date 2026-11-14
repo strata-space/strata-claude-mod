@@ -450,8 +450,8 @@ test('tables of escaped backslashes, headers alone or many rows, and escaped bac
   expect(tableLayout('a | b\n---\nc | d | e', 80)).toBe(null)
 })
 
-// The timed checks below parse inputs up to 128,000 characters; together they outlast the default 5 s.
-test('a fence under a list item, after a blank line, ends with the item; indented code is no table', { timeoutMs: 20_000 }, () => {
+// 17 timed checks below, each with a 5 s budget: the limit covers all of them at their budget.
+test('a fence under a list item, after a blank line, ends with the item; indented code is no table', { timeoutMs: 120_000 }, () => {
   const text = ['- item', '', '  ~~~html', '  <x/>', '', 'Outside.', '', '# Real'].join('\n')
   expect(outlineOf(text).map(entry => entry.path)).toEqual(['Real'])
   expect(degradeHtml(text, []).text).toContain('Outside.')
@@ -596,7 +596,8 @@ test('a fence under a list item, after a blank line, ends with the item; indente
   expect(opensFence('```html\u2028uses=sales')?.info).toBe('html\u2028uses=sales')
   // Unclosed image openers and backtick runs cost one pass, not a rescan each.
   // Each shape on its own budget: one pass each, not a rescan.
-  // A rescan on these inputs takes minutes, so 5 s per shape still catches one and leaves room for a loaded CI runner.
+  // A wall-clock budget, wide enough for a loaded CI runner. It catches a runaway parse, not every
+  // quadratic slip: some quadratic paths on these inputs finish in about a second (strata-space/strata-claude-mod#1).
   const BUDGET_MS = 5000
   const timed = (run: () => unknown): number => {
     const at = Date.now()

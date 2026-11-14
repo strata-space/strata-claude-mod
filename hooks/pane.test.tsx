@@ -568,6 +568,6 @@ test('a quote is counted under its heading alone: a long repeat under another co
   expect(occurrencesIn(text, [], 'a'.repeat(30000), ['A'])).toBe(1)
   expect(occurrencesIn('# A\n\nx y x\n\n# B\n\nx', [], 'x', ['A'])).toBe(2)
   expect(occurrencesIn('x\n\n# B\n\nx', [], 'x', [])).toBe(1)
-  // A rescan per heading takes minutes on 2 MB; 5 s leaves room for a loaded CI runner.
+  // A wall-clock budget, wide enough for a loaded CI runner. It catches a runaway scan, not every quadratic slip (strata-space/strata-claude-mod#1).
   expect(Date.now() - started).toBeLessThan(5000)
 })

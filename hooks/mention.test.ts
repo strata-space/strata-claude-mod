@@ -626,10 +626,11 @@ test('a passage quoted into the prompt keeps every line behind the quote mark', 
   expect(quoteForPrompt('A\rB')).toBe('\n> A\n> B\n\n')
 })
 
-// The timed checks below parse inputs up to 512,000 characters; together they can outlast the default 5 s.
-test('backtick runs of many lengths and unclosed tags cost one pass', { timeoutMs: 20_000 }, async () => {
+// 10 timed checks below, each with a 5 s budget: the limit covers all of them at their budget.
+test('backtick runs of many lengths and unclosed tags cost one pass', { timeoutMs: 120_000 }, async () => {
   // Each shape on its own budget.
-  // A rescan on these inputs takes minutes, so 5 s per shape still catches one and leaves room for a loaded CI runner.
+  // A wall-clock budget, wide enough for a loaded CI runner. It catches a runaway parse, not every
+  // quadratic slip: some quadratic paths on these inputs finish in about a second (strata-space/strata-claude-mod#1).
   const BUDGET_MS = 5000
   const timed = (run: () => unknown): number => {
     const at = Date.now()
