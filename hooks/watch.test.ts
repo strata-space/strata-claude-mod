@@ -81,7 +81,7 @@ const INFO = JSON.stringify({
 })
 
 const PANE = {
-  plugin: 'strata',
+  plugin: 'strata-mod',
   component: 'Pane',
   requestId: 'strata-doc',
   props: {

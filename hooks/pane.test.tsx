@@ -32,7 +32,7 @@ async function until(check: () => boolean | Promise<boolean>): Promise<void> {
 }
 
 const PANE = {
-  plugin: 'strata',
+  plugin: 'strata-mod',
   component: 'Pane',
   requestId: 'strata-doc',
   props: {
@@ -46,7 +46,7 @@ const PANE = {
 } as const
 
 const BAND = {
-  plugin: 'strata',
+  plugin: 'strata-mod',
   component: 'AbovePrompt',
   requestId: 'band',
   props: {

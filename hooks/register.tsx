@@ -76,8 +76,8 @@ const POLL_MS = 10_000
 const POLL_DOCS = 5
 /** The token budget a fetch of the pane's asks for, so the whole text comes back. */
 const WHOLE_READ_TOKENS = 400_000
-/** The server the public plugin bundles, for a call made before any Strata tool ran. */
-const DEFAULT_SERVER = 'strata'
+/** The server the `strata` plugin provides, in the tool-name spelling `$.mcp.call` accepts (`plugin:strata:strata` in `/mcp`), for a call made before any Strata tool ran. */
+const DEFAULT_SERVER = 'plugin_strata_strata'
 /** How many `@strata:` mentions one prompt expands. */
 const MENTION_LIMIT = 5
 /** How many search answers the mention typeahead keeps. */
@@ -92,28 +92,28 @@ const CONTEXT_TOTAL_MAX = 200_000
 
 // Shape tags: change one when its value's fields change, so a reload declines
 // what an earlier version stored.
-const ledger = atom({ plugin: 'strata', key: 'ledger' } as const, [] as StrataLoadedDoc[], {
+const ledger = atom({ plugin: 'strata-mod', key: 'ledger' } as const, [] as StrataLoadedDoc[], {
   shape: 'ledger-2',
 })
-const doc = atom({ plugin: 'strata', key: 'doc' } as const, null as StrataDocView | null, {
+const doc = atom({ plugin: 'strata-mod', key: 'doc' } as const, null as StrataDocView | null, {
   shape: 'doc-8',
 })
-const review = atom({ plugin: 'strata', key: 'review' } as const, [] as StrataReviewItem[], {
+const review = atom({ plugin: 'strata-mod', key: 'review' } as const, [] as StrataReviewItem[], {
   shape: 'review-1',
 })
 const explorer = atom(
-  { plugin: 'strata', key: 'explorer' } as const,
+  { plugin: 'strata-mod', key: 'explorer' } as const,
   { query: '', results: [], server: null, isSearching: false, error: null } as StrataExplorerView,
   { shape: 'explorer-2' },
 )
-const server = atom({ plugin: 'strata', key: 'server' } as const, null as string | null)
-const tier = atom({ plugin: 'strata', key: 'tier' } as const, 'unknown' as StrataTier)
-const liveOverride = atom({ plugin: 'strata', key: 'liveOverride' } as const, null as 'on' | 'off' | null)
-const mentionServers = atom({ plugin: 'strata', key: 'mentionServers' } as const, {} as Record<string, string>, {
+const server = atom({ plugin: 'strata-mod', key: 'server' } as const, null as string | null)
+const tier = atom({ plugin: 'strata-mod', key: 'tier' } as const, 'unknown' as StrataTier)
+const liveOverride = atom({ plugin: 'strata-mod', key: 'liveOverride' } as const, null as 'on' | 'off' | null)
+const mentionServers = atom({ plugin: 'strata-mod', key: 'mentionServers' } as const, {} as Record<string, string>, {
   shape: 'mentions-1',
 })
-const isBandHidden = atom({ plugin: 'strata', key: 'isBandHidden' } as const, false)
-const paneState = atom({ plugin: 'strata', key: 'pane' } as const, 'unopened' as 'unopened' | 'open' | 'closed')
+const isBandHidden = atom({ plugin: 'strata-mod', key: 'isBandHidden' } as const, false)
+const paneState = atom({ plugin: 'strata-mod', key: 'pane' } as const, 'unopened' as 'unopened' | 'open' | 'closed')
 
 type Engine = EngineInterface
 const noop = (): void => undefined
@@ -1068,7 +1068,7 @@ async function settleThread($: Engine, onDocument: DocumentRef, thread: StrataTh
   }
 }
 
-/** The server to call: the one last seen, else the public plugin's. */
+/** The server to call: the one last seen, else the `strata` plugin's. */
 async function serverFor($: Engine): Promise<string> {
   return (await read($, server)) ?? DEFAULT_SERVER
 }
@@ -2662,7 +2662,7 @@ export const register: Register = (on, options) => {
   // post's settlement), so the engine would find no handler to run for the
   // old one and report the hook as failed. Another plugin's field passes on.
   on('ui.input', { requestId: DOC_PANE }, async ($, e, next) => {
-    const field = e.plugin === 'strata' ? /^draft-([a-z0-9]+)-(\d+)$/.exec(e.element) : null
+    const field = e.plugin === 'strata-mod' ? /^draft-([a-z0-9]+)-(\d+)$/.exec(e.element) : null
     if (field === null) return next(e)
     const draftId = field[1] ?? ''
     const generation = Number(field[2] ?? '0')
@@ -2677,7 +2677,7 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.input', { requestId: EXPLORER_PANE }, async ($, e, next) => {
-    if (e.plugin !== 'strata' || e.element !== 'search') return next(e)
+    if (e.plugin !== 'strata-mod' || e.element !== 'search') return next(e)
     // The step is waited on, the search itself not.
     if (e.kind === 'submit') void runSearch($, e.value).catch(noop)
     else await keepQuery($, e.value).catch(noop)

@@ -58,10 +58,10 @@ test('an @strata: mention reads the document into the prompt and names it in the
 
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const sent = await $.prompt.submit({ text: 'Summarize @strata:doc_1 in two lines.' } as PromptSubmitInput)
-  expect(sent.text).toBe('Summarize the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool) in two lines.')
+  expect(sent.text).toBe('Summarize the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool) in two lines.')
   expect(sent.context?.join('\n')).toContain('None yet.')
   expect(sent.context?.join('\n')).toContain('revision 4')
-  expect(sent.context?.join('\n')).toContain('mcp__strata__read_document')
+  expect(sent.context?.join('\n')).toContain('mcp__plugin_strata_strata__read_document')
 })
 
 test('a mention inside a quoted line, or in a prompt a plugin submitted, is left as text', async ($, on) => {
@@ -117,14 +117,14 @@ test('a note a hook beneath dropped leaves the document unrecorded as read', asy
 
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const dropped = await $.prompt.submit({ text: 'Summarize @strata:doc_1.' } as PromptSubmitInput)
-  expect(dropped.text).toBe('Summarize the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool).')
+  expect(dropped.text).toBe('Summarize the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool).')
   const bare = await $.prompt.compose(COMPOSE)
   expect(bare.sections.map(section => section.text).join('\n')).not.toContain('doc_1')
 
   isDropping = false
   await $.prompt.submit({ text: 'Again: @strata:doc_1.' } as PromptSubmitInput)
   const noted = await $.prompt.compose(COMPOSE)
-  expect(noted.sections.map(section => section.text).join('\n')).toContain('"Plan" (doc_1, via mcp__strata__read_document) read at v4')
+  expect(noted.sections.map(section => section.text).join('\n')).toContain('"Plan" (doc_1, via mcp__plugin_strata_strata__read_document) read at v4')
 })
 
 test('the composed note names the pane\'s document only while the person sees the pane', async ($, on) => {
@@ -201,7 +201,7 @@ test('a document opened from the explorer, which the model never read, is named 
 
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const explorer = await $.ui.mount({
-    plugin: 'strata',
+    plugin: 'strata-mod',
     component: 'Pane',
     requestId: 'strata-space',
     surface: 'terminal',
@@ -467,126 +467,126 @@ test('a mention inside code, a fence, or an address is left as text; one of its 
     text: 'Compare https://example.org/(@strata:doc_1) with @strata:doc_1.',
   } as PromptSubmitInput)
   expect(beside.text).toBe(
-    'Compare https://example.org/(@strata:doc_1) with the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool).',
+    'Compare https://example.org/(@strata:doc_1) with the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool).',
   )
   expect(reads).toBe(1)
   // One after a link whose destination holds parentheses is read.
   const after = await $.prompt.submit({ text: 'See [plan](folder(part)) then @strata:doc_1' } as PromptSubmitInput)
   expect(after.text).toBe(
-    'See [plan](folder(part)) then the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)',
+    'See [plan](folder(part)) then the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)',
   )
   expect(reads).toBe(2)
   // A link opener inside code is literal: a mention after it is read.
   const opener = await $.prompt.submit({ text: 'Explain `](`, then summarize @strata:doc_1.' } as PromptSubmitInput)
   expect(opener.text).toBe(
-    'Explain `](`, then summarize the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool).',
+    'Explain `](`, then summarize the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool).',
   )
   expect(reads).toBe(3)
   // An apostrophe in a destination opens no title: the link closes, and a mention after it is read.
   const apostrophe = await $.prompt.submit({ text: "See [it](https://example.org/it's) then @strata:doc_1" } as PromptSubmitInput)
   expect(apostrophe.text).toBe(
-    "See [it](https://example.org/it's) then the Strata document \"Plan\" (doc_1, read with the mcp__strata__read_document tool)",
+    "See [it](https://example.org/it's) then the Strata document \"Plan\" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)",
   )
   expect(reads).toBe(4)
   // A destination in angle brackets closes at its bracket: a mention after the link is read.
   const bracketed = await $.prompt.submit({ text: 'See [it](<a)b>) then @strata:doc_1' } as PromptSubmitInput)
-  expect(bracketed.text).toBe('See [it](<a)b>) then the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(bracketed.text).toBe('See [it](<a)b>) then the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(5)
   // One standing on its own is read, and the literal beside it stays.
   const mixed = await $.prompt.submit({ text: 'Compare `@strata:doc_1` with (@strata:doc_1).' } as PromptSubmitInput)
-  expect(mixed.text).toBe('Compare `@strata:doc_1` with (the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)).')
+  expect(mixed.text).toBe('Compare `@strata:doc_1` with (the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)).')
   expect(reads).toBe(6)
   expect(mixed.context?.join('\n')).toContain('None yet.')
   // A definition's opener inside a code span is literal: the quote in it opens no title, and a mention after the span is read.
   const defined = await $.prompt.submit({ text: '`example\n[p]: /url "`\nThen summarize @strata:doc_1.' } as PromptSubmitInput)
   expect(defined.text).toBe(
-    '`example\n[p]: /url "`\nThen summarize the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool).',
+    '`example\n[p]: /url "`\nThen summarize the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool).',
   )
   expect(reads).toBe(7)
   // A fence opening a list item closes at the item's indentation: a mention in the next item is read.
   const listed = await $.prompt.submit({ text: '- ```text\n  @strata:doc_1\n  ```\n- then @strata:doc_1' } as PromptSubmitInput)
   expect(listed.text).toBe(
-    '- ```text\n  @strata:doc_1\n  ```\n- then the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)',
+    '- ```text\n  @strata:doc_1\n  ```\n- then the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)',
   )
   expect(reads).toBe(8)
   // An escaped bracket before a parenthesis opens no link: the mention after it is read.
   const escaped = await $.prompt.submit({ text: 'See \\](then @strata:doc_1' } as PromptSubmitInput)
-  expect(escaped.text).toBe('See \\](then the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(escaped.text).toBe('See \\](then the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(9)
   // A tab after a list marker reaches the next tab stop: the item's text starts at column four, and a close seven blanks in closes the fence.
   const tabbed = await $.prompt.submit({ text: '-\t~~~text\n    code\n       ~~~\nthen @strata:doc_1' } as PromptSubmitInput)
-  expect(tabbed.text).toBe('-\t~~~text\n    code\n       ~~~\nthen the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(tabbed.text).toBe('-\t~~~text\n    code\n       ~~~\nthen the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(10)
   // A line outside the list item ends the fence in it, and is prose of its own.
   const outside = await $.prompt.submit({ text: '- ```\n  code\n\nOutside @strata:doc_1' } as PromptSubmitInput)
-  expect(outside.text).toBe('- ```\n  code\n\nOutside the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(outside.text).toBe('- ```\n  code\n\nOutside the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(11)
   // A list item begins a block of its own after a quote: no lazy run-on.
   const interrupted = await $.prompt.submit({ text: '> quoted\n- @strata:doc_1' } as PromptSubmitInput)
-  expect(interrupted.text).toBe('> quoted\n- the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(interrupted.text).toBe('> quoted\n- the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(12)
   // A heading's text is prose of the person's; a list item is a block of its own, so a backtick left open before it pairs with nothing in it.
   const headed = await $.prompt.submit({ text: '# See @strata:doc_1\n`a\n- b` @strata:doc_1' } as PromptSubmitInput)
   expect(headed.text).toBe(
-    '# See the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)\n`a\n- b` the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)',
+    '# See the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)\n`a\n- b` the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)',
   )
   expect(reads).toBe(13)
   // An item of another delimiter, not numbered 1, runs the item's paragraph on: the span closes in it, and the mention after is read.
   const sibling = await $.prompt.submit({ text: '1. `a\n2) b` @strata:doc_1' } as PromptSubmitInput)
-  expect(sibling.text).toBe('1. `a\n2) b` the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(sibling.text).toBe('1. `a\n2) b` the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(14)
   // A nested item numbered 1, indented to the item's text, interrupts it: a backtick left open above pairs with nothing in it.
   const nested = await $.prompt.submit({ text: '1. `a\n   1. b` @strata:doc_1' } as PromptSubmitInput)
-  expect(nested.text).toBe('1. `a\n   1. b` the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(nested.text).toBe('1. `a\n   1. b` the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(15)
   // An empty item of another list, short of the item's column, begins a list of its own (as the reference parser has it):
   // no span runs from the item into the text after, which pairs its own backticks; the mention past them is read.
   const other = await $.prompt.submit({ text: '- `a\n*\n`b` @strata:doc_1' } as PromptSubmitInput)
-  expect(other.text).toBe('- `a\n*\n`b` the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(other.text).toBe('- `a\n*\n`b` the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(16)
   // A heading begun in an item is prose of the person's too.
   const itemHeading = await $.prompt.submit({ text: '- # See @strata:doc_1' } as PromptSubmitInput)
-  expect(itemHeading.text).toBe('- # See the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(itemHeading.text).toBe('- # See the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(17)
   // A thematic break inside an item leaves the item a container: a heading indented to it after a blank line is prose.
   const breakHeading = await $.prompt.submit({ text: '1. - - -\n\n   # See @strata:doc_1' } as PromptSubmitInput)
-  expect(breakHeading.text).toBe('1. - - -\n\n   # See the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(breakHeading.text).toBe('1. - - -\n\n   # See the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(18)
   // Prose right after a definition, no blank line between, is prose of its own.
   const afterDefinition = await $.prompt.submit({ text: '[p]: /url "t"\nExplain @strata:doc_1' } as PromptSubmitInput)
-  expect(afterDefinition.text).toBe('[p]: /url "t"\nExplain the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(afterDefinition.text).toBe('[p]: /url "t"\nExplain the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(19)
   // A list item right after a definition is a block of its own, its text prose.
   const listAfterDefinition = await $.prompt.submit({ text: '[p]: /url\n- then @strata:doc_1' } as PromptSubmitInput)
-  expect(listAfterDefinition.text).toBe('[p]: /url\n- then the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(listAfterDefinition.text).toBe('[p]: /url\n- then the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(20)
   // Many definitions in one block are read each at its own offset, not the block over again for each.
   const many = Array.from({ length: 20000 }, (_, i) => `[p${String(i)}]: /url`).join('\n')
   const manyDefinitions = await $.prompt.submit({ text: `${many}\nthen @strata:doc_1` } as PromptSubmitInput)
-  expect(manyDefinitions.text).toBe(`${many}\nthen the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)`)
+  expect(manyDefinitions.text).toBe(`${many}\nthen the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)`)
   expect(reads).toBe(21)
   // A raw text element ends on the line of its closing tag: the line after is prose.
   const afterPre = await $.prompt.submit({ text: '<pre>\n@strata:doc_1\n</pre>\nthen @strata:doc_1' } as PromptSubmitInput)
-  expect(afterPre.text).toBe('<pre>\n@strata:doc_1\n</pre>\nthen the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(afterPre.text).toBe('<pre>\n@strata:doc_1\n</pre>\nthen the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(22)
   // An HTML block in a list item ends with the item: the line outside it is prose.
   const afterItemHtml = await $.prompt.submit({ text: '- <div>\n  example\n  </div>\nRead @strata:doc_1' } as PromptSubmitInput)
-  expect(afterItemHtml.text).toBe('- <div>\n  example\n  </div>\nRead the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(afterItemHtml.text).toBe('- <div>\n  example\n  </div>\nRead the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(23)
   // A tag in a code span is text, and a mention after the span is read.
   const tagInCode = await $.prompt.submit({ text: 'Use `<b title="`">` then @strata:doc_1' } as PromptSubmitInput)
-  expect(tagInCode.text).toBe('Use `<b title="`">` then the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(tagInCode.text).toBe('Use `<b title="`">` then the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(24)
   // A mention beside a bare `www.` address is its own.
   const besideWww = await $.prompt.submit({ text: 'See www.example.org then @strata:doc_1' } as PromptSubmitInput)
-  expect(besideWww.text).toBe('See www.example.org then the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)')
+  expect(besideWww.text).toBe('See www.example.org then the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)')
   expect(reads).toBe(25)
   // Sentence punctuation after one, a backtick never closed before one, and
   // a list item or a line of its own around one leave it a mention.
   const prose = await $.prompt.submit({
     text: 'Unclosed ` then @strata:doc_1? Yes: @strata:doc_1.\n- @strata:doc_1\n@strata:doc_1',
   } as PromptSubmitInput)
-  const named = 'the Strata document "Plan" (doc_1, read with the mcp__strata__read_document tool)'
+  const named = 'the Strata document "Plan" (doc_1, read with the mcp__plugin_strata_strata__read_document tool)'
   expect(prose.text).toBe(`Unclosed \` then ${named}? Yes: ${named}.\n- ${named}\n${named}`)
   expect(reads).toBe(26)
 })

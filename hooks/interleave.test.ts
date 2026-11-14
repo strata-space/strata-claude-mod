@@ -15,7 +15,7 @@ import type { TestBody } from 'claude-code/testing'
 declare const setTimeout: (fn: () => void, ms: number) => unknown
 
 const PANE = {
-  plugin: 'strata',
+  plugin: 'strata-mod',
   component: 'Pane',
   requestId: 'strata-doc',
   props: {

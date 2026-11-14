@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "strata-mod",
+  "displayName": "StrataSpace mod",
+  "description": "A terminal document view for StrataSpace in Claude Code. A pane opens beside the chat when Claude reads a document, a band above the prompt tracks what Claude has read and when it changed, an explorer and review queue (/strata) search your Spaces and list the suggestions and comments made this session, @strata: mentions complete to a document in the prompt, and with the strata CLI the pane follows the document live with collaborators' presence. Requires the strata plugin, which provides the MCP server.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "dependencies": ["strata@strata-space"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "cliPath": {
+      "type": "string",
+      "title": "strata CLI",
+      "description": "The strata CLI the live watch runs (`strata doc watch`): a path, or a name on PATH.",
+      "default": "strata"
+    },
+    "liveWatch": {
+      "type": "boolean",
+      "title": "Live watch",
+      "description": "Follow the pane's document live through the CLI when it is signed in; off, the pane polls revisions over MCP.",
+      "default": true
+    },
+    "autoOpen": {
+      "type": "boolean",
+      "title": "Open the pane on read",
+      "description": "Open the document pane unasked the first time Claude reads a Strata document in a wide enough terminal.",
+      "default": true
+    }
+  },
+  "keywords": ["strataspace", "terminal", "collaboration", "document", "pane", "mod"],
+  "author": {
+    "name": "StrataSpace",
+    "url": "https://strata.space"
+  },
+  "homepage": "https://strata.space",
+  "repository": "https://github.com/strata-space/strata-claude-mod",
+  "privacyPolicyUrl": "https://strata.space/privacy"
+}
